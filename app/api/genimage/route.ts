@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
 const replicateApiUrl =
-  "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions";
+  "https://api.replicate.com/v1/models/black-forest-labs/flux-dev/predictions";
 const replicateApiToken = process.env.REPLICATE_API_TOKEN;
-// export REPLICATE_API_TOKEN=fadffb508dd305d04e94fe8d19041423569782c8
 export async function POST(request: Request) {
   const { prompt } = await request.json();
 
