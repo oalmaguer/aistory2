@@ -2,20 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap'); */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  
+  --background: #857b7b;
+  --foreground: #ffffff;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(139, 0, 0, 0.1) 0%, transparent 100%),
+    linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.9));
+  background-attachment: fixed;
+}
+
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+  }
+}
+
+@layer components {
+  .story-content {
+    @apply text-gray-300 leading-relaxed whitespace-pre-wrap;
+  }
+  
+  .story-title {
+    @apply text-red-500 text-xl font-semibold mb-4;
+  }
 }
