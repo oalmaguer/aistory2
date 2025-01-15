@@ -22,7 +22,7 @@ export async function GET(request: Request) {
         {
           role: "assistant",
           content:
-            "Create a maximum of 40 words prompt to generate a horror story. The story should be scary, suspenseful, and engaging. It should also include a twist ending that leaves the reader on the edge of their seat. Only return the prompt, no other text. ",
+            "Create a maximum of 25 words prompt to generate a horror story. Do not write cliche or already told stories and always randomize them. Only return the prompt, no other text. ",
         },
       ],
     }),

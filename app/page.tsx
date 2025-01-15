@@ -1,13 +1,23 @@
 "use client";
 import { useState } from "react";
-import Story from "./components/Story";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { saveStory } from "@/lib/supabase";
 
 export default function Home() {
-  const [story, setStory] = useState(``);
+  const [story, setStory] = useState(
+    "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Officiis culpa eaque ipsa, perspiciatis accusantium amet consequatur similique est veritatis iusto, inventore quidem suscipit, obcaecati quos quo iste tenetur? Vel, neque."
+  );
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [isVoiceLoading, setIsVoiceLoading] = useState(false);
+  const [isRandomPromptLoading, setIsRandomPromptLoading] = useState(false);
   const [error, setError] = useState("");
+  const [voiceUrl, setVoiceUrl] = useState("");
   const [showStory, setShowStory] = useState(false);
+  const [title, setTitle] = useState("");
 
   const [imageUrl, setImageUrl] = useState("");
   const generateStory = async (e: React.FormEvent) => {
@@ -28,6 +38,7 @@ export default function Home() {
         body: JSON.stringify({ prompt }),
       });
 
+      console.log("response", response);
       if (!response.ok) {
         throw new Error("Failed to generate story");
       }
@@ -35,49 +46,92 @@ export default function Home() {
       const data = await response.json();
 
       generateImage(data.prompt_for_image);
-
+      // generateVoice(data.story);
       setStory(data.story);
+      setTitle(data.title);
     } catch (err) {
-      setError("Failed to generate story. Please try again.");
+      setError("Failed to generate voice. Please try again.");
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateImage = async (prompt: string) => {
-    const response = await fetch("/api/genimage", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt }),
-    });
+  const generateVoice = async (story: string) => {
+    setIsVoiceLoading(true);
+    try {
+      const response = await fetch("/api/genvoice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ story }),
+      });
 
-    if (!response.ok) {
-      throw new Error("Failed to generate story");
+      console.log("response from voice", response);
+
+      if (!response.ok) {
+        throw new Error("Failed to generate story");
+      }
+
+      const data = await response.json();
+      setVoiceUrl(data.audio);
+    } catch (error) {
+      console.error("Failed to generate voice:", error);
+    } finally {
+      setIsVoiceLoading(false);
     }
+  };
 
-    const data = await response.json();
+  const generateImage = async (prompt: string) => {
+    setIsImageLoading(true);
+    try {
+      const response = await fetch("/api/genimage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt }),
+      });
 
-    setImageUrl(data);
+      if (!response.ok) {
+        throw new Error("Failed to generate story");
+      }
+
+      const data = await response.json();
+      setImageUrl(data);
+    } catch (error) {
+      console.error("Failed to generate image:", error);
+    } finally {
+      setIsImageLoading(false);
+    }
   };
 
   const genRandomPrompt = async () => {
-    const randomPrompt = await fetch("/api/randomprompt", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    setIsRandomPromptLoading(true);
+    try {
+      const randomPrompt = await fetch("/api/randomprompt", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    if (!randomPrompt.ok) {
-      throw new Error("Failed to generate story");
+      if (!randomPrompt.ok) {
+        throw new Error("Failed to generate story");
+      }
+      const data = await randomPrompt.json();
+
+      setPrompt(data.choices[0].message.content);
+    } catch (error) {
+      console.error("Failed to generate random prompt:", error);
+    } finally {
+      setIsRandomPromptLoading(false);
     }
-    const data = await randomPrompt.json();
+  };
 
-    setPrompt(data.choices[0].message.content);
-    // setPrompt(res.);
+  const saveUserStory = async (story: any) => {
+    await saveStory(story, title, prompt, imageUrl);
   };
 
   return (
@@ -91,31 +145,34 @@ export default function Home() {
                 <div className="space-y-2">
                   <label
                     htmlFor="prompt"
-                    className="block text-red-400 text-sm font-medium"
+                    className="scroll-m-20 text-1xl font tracking-tight lg:text-xl"
                   >
                     Enter your nightmare...
                   </label>
-                  <textarea
+                  <Textarea
                     id="prompt"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    className="w-full h-32 bg-black/50 text-gray-200 p-4 rounded-lg border border-red-900/30 focus:border-red-700 focus:ring-1 focus:ring-red-700 focus:outline-none resize-none placeholder:text-gray-600"
+                    className="w-full h-32 bg-black/50 text-gray-200 p-4 rounded-lg border"
                     placeholder="Describe your darkest fears..."
                   />
                 </div>
 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
-                <button
+                <Button
                   type="button"
                   onClick={() => genRandomPrompt()}
+                  disabled={isRandomPromptLoading}
                   className="w-10 bg-red-900 hover:bg-red-800 disabled:bg-gray-700 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center"
                 >
-                  🎲
-                </button>
-                <button
+                  <span className={isRandomPromptLoading ? "animate-spin" : ""}>
+                    🎲
+                  </span>
+                </Button>
+                <Button
                   type="submit"
                   disabled={isLoading || prompt.trim().length === 0}
-                  className="w-full bg-red-900 hover:bg-red-800 disabled:bg-gray-700 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center"
+                  className="w-full tracking-tight"
                 >
                   {isLoading ? (
                     <>
@@ -144,13 +201,20 @@ export default function Home() {
                   ) : (
                     "Generate Story"
                   )}
-                </button>
-                {imageUrl && (
-                  <img
-                    src={imageUrl}
-                    alt="horror story"
-                    className="w-full h-auto rounded-lg"
-                  />
+                </Button>
+                {isImageLoading ? (
+                  <div className="w-full aspect-video">
+                    <Skeleton className="w-full h-full rounded-lg bg-gray-800/50" />
+                  </div>
+                ) : (
+                  imageUrl && (
+                    <img
+                      onClick={() => window.open(imageUrl, "_blank")}
+                      src={imageUrl}
+                      alt="horror story"
+                      className="w-full h-auto rounded-lg"
+                    />
+                  )
                 )}
               </form>
             </div>
@@ -160,11 +224,11 @@ export default function Home() {
         <main className="flex-1 p-8 pb-20 sm:p-20">
           <div className="max-w-3xl mx-auto">
             <header className="text-center mb-16">
-              <h1 className="text-6xl font-bold text-red-600 mb-8 tracking-wider">
+              <h1 className="scroll-m-5 text-4xl font-extrabold tracking-tight lg:text-5xl">
                 Horror Story Creator
               </h1>
-              {!story && (
-                <p className="text-2xl text-gray-400 leading-relaxed">
+              {!story && !isLoading && (
+                <p className="leading-7 [&:not(:first-child)]:mt-6 text-lg">
                   Welcome to Horror Story Creator, where your darkest
                   imaginations come to life. Venture into the depths of terror
                   as our AI crafts personalized tales of horror that will send
@@ -172,15 +236,47 @@ export default function Home() {
                   in the corners of your mind?
                 </p>
               )}
-              {story && (
+              {(story || isLoading) && (
                 <div className="mt-8 space-y-4">
+                  {/* save story icon */}
+                  <Button
+                    type="button"
+                    onClick={() => saveUserStory(story)}
+                    disabled={false}
+                    className="bg-green-700 tracking-tight"
+                    color="white"
+                  >
+                    Save Story
+                  </Button>
+
                   <h2 className="text-xl font-semibold text-red-500">
-                    Your Tale of Horror
+                    {story && title ? title : "Your Tale of Horror"}
                   </h2>
+                  {isVoiceLoading ? (
+                    <Skeleton className="w-full h-12 rounded-lg bg-gray-800/50" />
+                  ) : (
+                    voiceUrl && (
+                      <audio controls className="w-full h-auto rounded-lg">
+                        <source
+                          src={`data:audio/mpeg;base64,${voiceUrl}`}
+                          type="audio/mpeg"
+                        />
+                      </audio>
+                    )
+                  )}
                   <div className="bg-black/50 p-6 rounded-lg border border-red-900/30 prose prose-invert prose-red">
-                    <p className="text-gray-300 text-2xl leading-relaxed whitespace-pre-wrap">
-                      {story}
-                    </p>
+                    {isLoading ? (
+                      <div className="space-y-3">
+                        <Skeleton className="w-full h-6 bg-gray-800/50" />
+                        <Skeleton className="w-[90%] h-6 bg-gray-800/50" />
+                        <Skeleton className="w-[95%] h-6 bg-gray-800/50" />
+                        <Skeleton className="w-[85%] h-6 bg-gray-800/50" />
+                      </div>
+                    ) : (
+                      <p className="text-gray-300 text-2xl leading-relaxed whitespace-pre-wrap">
+                        {story}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

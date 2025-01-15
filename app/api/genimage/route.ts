@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 const replicateApiUrl =
-  "https://api.replicate.com/v1/models/black-forest-labs/flux-dev/predictions";
+  "https://api.replicate.com/v1/models/recraft-ai/recraft-v3/predictions";
 const replicateApiToken = process.env.REPLICATE_API_TOKEN;
 export async function POST(request: Request) {
   const { prompt } = await request.json();
@@ -14,8 +14,10 @@ export async function POST(request: Request) {
 
   const body = JSON.stringify({
     input: {
+      size: "1365x1024",
+      style: "realistic_image",
       prompt,
-      guidance: 3.5,
+      // guidance: 1.8,
     },
   });
 
